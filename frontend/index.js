@@ -7,43 +7,27 @@ const socket = io();
 socket.on('init', handleInit);
 socket.on('gameState', handleGameState);
 socket.on('gameOver', handleGameOver);
-socket.on('gameCode', handleGameCode);
-socket.on('unknownCode', handleUnknownCode);
-socket.on('tooManyPlayers', handleTooManyPlayers);
 
 const gameScreen = document.getElementById('gameScreen');
 const initialScreen = document.getElementById('initialScreen');
-const newGameBtn = document.getElementById('newGameButton');
-const joinGameBtn = document.getElementById('joinGameButton');
-const gameCodeInput = document.getElementById('gameCodeInput');
-const gameCodeDisplay = document.getElementById('gameCodeDisplay');
+const startBtn = document.getElementById('startButton');
+const scoreDisplay = document.getElementById('scoreDisplay');
 
-newGameBtn.addEventListener('click', newGame);
-joinGameBtn.addEventListener('click', joinGame);
+startBtn.addEventListener('click', startGame);
 
-
-function newGame() {
-  socket.emit('newGame');
-  init();
-}
-
-function joinGame() {
-  const code = gameCodeInput.value;
-  socket.emit('joinGame', code);
-  init();
+function startGame() {
+  socket.emit('startGame');
 }
 
 let canvas, ctx;
-let playerNumber;
 let gameActive = false;
 
-function init() {
+function handleInit() {
   initialScreen.style.display = "none";
   gameScreen.style.display = "block";
 
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
-
   canvas.width = canvas.height = 600;
 
   ctx.fillStyle = BG_COLOUR;
@@ -69,62 +53,35 @@ function paintGame(state) {
   ctx.fillRect(food.x * size, food.y * size, size, size);
 
   paintPlayer(state.players[0], size, SNAKE_COLOUR);
-  paintPlayer(state.players[1], size, 'red');
+
+  scoreDisplay.innerText = state.score;
 }
 
 function paintPlayer(playerState, size, colour) {
   const snake = playerState.snake;
-
   ctx.fillStyle = colour;
   for (let cell of snake) {
     ctx.fillRect(cell.x * size, cell.y * size, size, size);
   }
 }
 
-function handleInit(number) {
-  playerNumber = number;
-}
-
 function handleGameState(gameState) {
-  if (!gameActive) {
-    return;
-  }
+  if (!gameActive) return;
   gameState = JSON.parse(gameState);
   requestAnimationFrame(() => paintGame(gameState));
 }
 
 function handleGameOver(data) {
-  if (!gameActive) {
-    return;
-  }
+  if (!gameActive) return;
   data = JSON.parse(data);
-
   gameActive = false;
-
-  if (data.winner === playerNumber) {
-    alert('You Win!');
-  } else {
-    alert('You Lose :(');
-  }
-}
-
-function handleGameCode(gameCode) {
-  gameCodeDisplay.innerText = gameCode;
-}
-
-function handleUnknownCode() {
+  document.removeEventListener('keydown', keydown);
+  alert(`Game Over! Score: ${data.score}`);
   reset();
-  alert('Unknown Game Code')
-}
-
-function handleTooManyPlayers() {
-  reset();
-  alert('This game is already in progress');
 }
 
 function reset() {
-  playerNumber = null;
-  gameCodeInput.value = '';
   initialScreen.style.display = "block";
   gameScreen.style.display = "none";
+  scoreDisplay.innerText = 0;
 }
